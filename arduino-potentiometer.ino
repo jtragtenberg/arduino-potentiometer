@@ -7,7 +7,7 @@
 // significant change in the original value.
 
 
-#define TEN_BIT_READING 1
+#define TEN_BIT_READING 1 //this is the lossless option, using all the 10 bits of the Arduino ADC
 #define NINE_BIT_READING 2
 #define EIGHT_BIT_READING 4
 #define SEVEN_BIT_READING 8 //the standard MIDI values are 7 bits long
@@ -37,11 +37,11 @@ void loop() {
   //but if you need a smaller bit depth, you can change this
   //value giving a higher threshold value for the change detection
   //the smaller bit depth you use, the less filtering is needed
-  if (changedValue(filteredValue, SEVEN_BIT_READING)) {
+  if (changedValue(filteredValue, TEN_BIT_READING)) {
     
     //Here you execute the instructions you want when the pot changes value:
    
-    Serial.println(sensorValue / SEVEN_BIT_READING);
+    Serial.println(sensorValue / TEN_BIT_READING);
   }
 
   //delay(5);
