@@ -12,10 +12,13 @@
 #define EIGHT_BIT_READING 4
 #define SEVEN_BIT_READING 8 //the standard MIDI values are 7 bits long
 
+int bitRange = TEN_BIT_READING;
+
 //Global Variables
 int sensorPin = A0;      //pin number to use the ADC
 int sensorValue = 0;     //initialization of sensor variable, equivalent to EMA Y
 int filteredValue = 0;   //variable to store the filtered value
+
 
 
 void setup() {
@@ -25,23 +28,28 @@ void setup() {
 void loop() {
   sensorValue = analogRead(sensorPin);                //read the sensor value using ADC
 
-  //This applies the Exponential Moving Average Filter
+
+  filteredValue = EMA(sensorValue, filteredValue, 0.8); //This applies the Exponential Moving Average Filter
   //the amount of filtering goes from 0.0 to 1.0
   //(the greater the resolution you want, more filtering you need to put)
   //the filteredValue is iterated through this function
-  filteredValue = EMA(sensorValue, filteredValue, 0.8);
 
+  if (changedValue(filteredValue, bitRange)) {   //The original bit depth of the Arduino ADC is 10bits
+    //but if you need a smaller bit depth, you can change this
+    //value giving a higher threshold value for the change detection
+    //the smaller bit depth you use, the less filtering is needed
 
-  //This only executes the instructions when the potentiometer is moved.
-  //The original bit depth of the Arduino ADC is 10bits
-  //but if you need a smaller bit depth, you can change this
-  //value giving a higher threshold value for the change detection
-  //the smaller bit depth you use, the less filtering is needed
-  if (changedValue(filteredValue, TEN_BIT_READING)) {
-    
+    //TODO: understand why the pot is jumping values when changing direction
+
     //Here you execute the instructions you want when the pot changes value:
-   
-    Serial.println(sensorValue / TEN_BIT_READING);
+
+    int outputValue = sensorValue / bitRange;
+    
+    Serial.println(outputValue); //change TEN_BIT_READING to other defined bit ranges here and above
+
+    int potSection = sectionizePot(outputValue, 5, bitRange); //this divides the input values in #n sections.
+
+    Serial.println(potSection);
   }
 
   //delay(5);
@@ -62,21 +70,40 @@ bool changedValue(int inputValue_, int threshold_) {
   else return false;
 }
 
-
-
-//both these functions can work for integer values as well as for floating point filtered values
-/*
-float EMA(float inputValue, float filteredValue, float filteringAmount) {
-  return ((1 - filteringAmount) * inputValue) + (filteringAmount * filteredValue);
+int potSection_;
+int sectionizePot(int inputValue_, int nSections_, int bitRange_) {
+  int sectionSize_ = floor(1024 / bitRange_ / nSections_);
+  if (inputValue_ < sectionSize_) {
+    potSection_ = 0;
+    return potSection_;
+  }
+  if (nSections_ > 2) {
+    for (int i = 1 ; i < (nSections_ - 1) ; i++) {
+      if ((inputValue_ >= floor(i * sectionSize_)) && (inputValue_ < floor((i + 1) * sectionSize_))) {
+        potSection_ = i;
+        return potSection_;
+      }
+    }
+  }
+  if (inputValue_ >= floor((nSections_ - 1) * sectionSize_)) {
+    potSection_ = nSections_ - 1;
+    return potSection_;
+  }
 }
 
+//both of the above functions can work for integer values as well as for floating point filtered values
+/*
+  float EMA(float inputValue, float filteredValue, float filteringAmount) {
+  return ((1 - filteringAmount) * inputValue) + (filteringAmount * filteredValue);
+  }
 
-float lastValue_f;
-bool changedValue(float inputValue_, float threshold_) {
+
+  float lastValue_f;
+  bool changedValue(float inputValue_, float threshold_) {
   if (abs(inputValue_ - lastValue_f) >= threshold_) {
     lastValue_f = inputValue_;
     return true;
   }
   else return false;
-}
+  }
 */
